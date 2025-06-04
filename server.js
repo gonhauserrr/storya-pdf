@@ -888,7 +888,7 @@ app.post('/generate-book', async (req, res) => {
       // Type 3: Background + text only
       if (page.type === 3) {
         
-        doc.font('Quicksand')
+        doc.font('Quicksand-Bold')
           .fontSize(20 * fontScale)
           .fillColor('#000000')
           .text(page.text, cmToPx(2.43), cmToPx(11.39), {
