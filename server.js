@@ -2,6 +2,8 @@ import express from 'express';
 import PDFDocument from 'pdfkit';
 import fetch from 'node-fetch';
 import fs from 'fs';
+import { PDFDocument as PDFMerger } from 'pdf-lib';
+
 
 const app = express();
 app.use(express.json());
@@ -985,6 +987,31 @@ app.post('/generate-note', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate note PDF' });
   }
 });
+
+app.post('/merge-pdfs', async (req, res) => {
+  const { urls } = req.body;
+
+  try {
+    const mergedPdf = await PDFMerger.create();
+
+    for (const url of urls) {
+      const response = await fetch(url);
+      const pdfBytes = await response.arrayBuffer();
+      const pdf = await PDFMerger.load(pdfBytes);
+      const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
+    }
+
+    const finalPdfBytes = await mergedPdf.save();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.send(Buffer.from(finalPdfBytes));
+  } catch (error) {
+    console.error('Merge error:', error);
+    res.status(500).send('Error merging PDFs');
+  }
+});
+
 
 
 const PORT = process.env.PORT || 3000;
