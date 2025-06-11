@@ -927,6 +927,66 @@ stream.on('finish', () => {
   }
 });
 
+
+app.post('/generate-note', async (req, res) => {
+  const { background, signature, text } = req.body;
+
+  try {
+    const doc = new PDFDocument({ size: [1414, 2000], margin: 0 });
+    const filename = 'output-note.pdf';
+    const stream = fs.createWriteStream(filename);
+    doc.pipe(stream);
+
+    // Load the font
+    doc.registerFont('Quicksand', 'fonts/Quicksand-Regular.ttf');
+
+    // Draw background
+    const bg = await fetchImage(background);
+    doc.image(bg, 0, 0, { width: 1414, height: 2000 });
+
+    // Draw text (centered with padding)
+    doc.font('Quicksand')
+      .fontSize(26 * fontScale)
+      .fillColor('#000000')
+      .text(text, cmToPx(2), cmToPx(9.63), {
+        width: 1414 - cmToPx(4), // horizontal padding
+        height: cmToPx(3), // enough height to allow vertical centering
+        align: 'center',
+        valign: 'center'
+      });
+
+    // Draw signature image
+    const sig = await fetchImage(signature);
+    doc.image(sig, cmToPx(8.31), cmToPx(19.52), {
+      width: cmToPx(4),
+      height: cmToPx(4)
+    });
+
+    doc.end();
+
+    stream.on('finish', () => {
+      res.download(filename, (err) => {
+        if (err) {
+          console.error('Download error:', err);
+        } else {
+          setTimeout(() => {
+            try {
+              fs.unlinkSync(filename);
+            } catch (e) {
+              console.error('Unlink error:', e.message);
+            }
+          }, 2000);
+        }
+      });
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate note PDF' });
+  }
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
