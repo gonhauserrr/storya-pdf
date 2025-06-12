@@ -1012,7 +1012,178 @@ app.post('/merge-pdfs', async (req, res) => {
   }
 });
 
+app.post('/generate-21', async (req, res) => {
+  const {
+    backgroundUrl,
+    characterUrl,
+    imaginedBy,
+  } = req.body;
 
+  if (!backgroundUrl || !characterUrl || !imaginedBy) {
+    return res.status(400).json({ error: 'Missing or invalid parameters' });
+  }
+
+  try {
+    const fetchImage = async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+      return await response.buffer();
+    };
+
+    const background = await fetchImage(backgroundUrl);
+    const character = await fetchImage(characterUrl);
+
+    const doc = new PDFDocument({
+      size: [1414, 2000],
+      margin: 0,
+    });
+
+    const fontScale = 2.2;
+    const fontColor = '#ffffff';
+
+    // Register custom font "CupCakes"
+    doc.registerFont('Quicksand', 'fonts/Quicksand-Bold.ttf');
+    doc.font('Quicksand');
+
+    const filename = 'output-21.pdf';
+    const stream = fs.createWriteStream(filename);
+    doc.pipe(stream);
+
+    // Draw background
+    doc.image(background, 0, 0, { width: 1414, height: 2000 });
+
+    // Draw character
+    doc.image(character, cmToPx(-2), cmToPx(2.51), {
+      width: cmToPx(13.7),
+      height: cmToPx(18.27),
+    });
+
+    doc.fontSize(21 * fontScale)
+       .fillColor(fontColor)
+       .text(imaginedBy, cmToPx(8.37), cmToPx(16.82), {
+         width: cmToPx(11.14),
+         align: 'center'
+       });
+
+
+    doc.end();
+
+    stream.on('finish', () => {
+      res.download(filename, () => {
+        fs.unlinkSync(filename);
+      });
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'PDF generation failed' });
+  }
+});
+
+
+app.post('/generate-22', async (req, res) => {
+  const {
+    backgroundUrl,
+    characterUrl,
+    imaginedBy,
+  } = req.body;
+
+  if (!backgroundUrl || !characterUrl || !imaginedBy) {
+    return res.status(400).json({ error: 'Missing or invalid parameters' });
+  }
+
+  try {
+    const fetchImage = async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+      return await response.buffer();
+    };
+
+    const background = await fetchImage(backgroundUrl);
+    const character = await fetchImage(characterUrl);
+
+    const doc = new PDFDocument({
+      size: [1414, 2000],
+      margin: 0,
+    });
+
+    const fontScale = 2.2;
+    const fontColor = '#000000';
+
+    // Register custom font "CupCakes"
+    doc.registerFont('Kollektif', 'fonts/Kollektif-Bold.ttf');
+    doc.font('Kollektif');
+
+    const filename = 'output-21.pdf';
+    const stream = fs.createWriteStream(filename);
+    doc.pipe(stream);
+
+    // Draw background
+    doc.image(background, 0, 0, { width: 1414, height: 2000 });
+
+    // Draw character
+    doc.image(character, cmToPx(-2), cmToPx(9), {
+      width: cmToPx(15.75),
+      height: cmToPx(21.01),
+    });
+
+    doc.fontSize(21 * fontScale)
+       .fillColor(fontColor)
+       .text(imaginedBy, cmToPx(6.46), cmToPx(14.85), {
+         align: 'center'
+       });
+
+
+    doc.end();
+
+    stream.on('finish', () => {
+      res.download(filename, () => {
+        fs.unlinkSync(filename);
+      });
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'PDF generation failed' });
+  }
+});
+
+
+app.post('/generate-background-pdf', async (req, res) => {
+  const { background } = req.body;
+
+  if (!background) {
+    return res.status(400).json({ error: 'Missing background URL' });
+  }
+
+  try {
+    const doc = new PDFDocument({ size: [1414, 2000], margin: 0 });
+    const filename = 'background-output.pdf';
+    const stream = fs.createWriteStream(filename);
+    doc.pipe(stream);
+
+    const bgResponse = await fetch(background.startsWith('http') ? background : `https:${background}`);
+    const bgBuffer = await bgResponse.buffer();
+
+    doc.image(bgBuffer, 0, 0, { width: 1414, height: 2000 });
+    doc.end();
+
+    stream.on('finish', () => {
+      res.download(filename, () => {
+        setTimeout(() => {
+          try {
+            fs.unlinkSync(filename);
+          } catch (err) {
+            console.error('Error deleting file:', err.message);
+          }
+        }, 2000);
+      });
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
