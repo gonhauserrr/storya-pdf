@@ -893,9 +893,9 @@ app.post('/generate-book', async (req, res) => {
         doc.font('Quicksand-Bold')
           .fontSize(20 * fontScale)
           .fillColor('#000000')
-          .text(page.text, cmToPx(2.43), cmToPx(8.39), {
+          .text(page.text, cmToPx(2.43), cmToPx(5.39), {
             width: cmToPx(16.13),
-            height: cmToPx(8.73),
+            height: cmToPx(11.73),
             align: 'center',
             valign: 'center'
           });
