@@ -844,7 +844,7 @@ app.post('/generate-book', async (req, res) => {
 
   try {
     const doc = new PDFDocument({ size: [1414, 2000], margin: 0 });
-    const filename = 'output-book.pdf';
+    const filename = `output-book-${Date.now()}.pdf`;
     const stream = fs.createWriteStream(filename);
     doc.pipe(stream);
 
