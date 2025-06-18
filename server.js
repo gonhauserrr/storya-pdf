@@ -954,9 +954,9 @@ app.post('/generate-note', async (req, res) => {
        // Draw signature image
       const sigBuffer = await fetchNoteImage(signature);
       console.log('Drawing signature image');
-      doc.image(sigBuffer, cmToPx(8.31), cmToPx(19.52), {
-        width: cmToPx(8),
-        height: cmToPx(8)
+      doc.image(sigBuffer, cmToPx(8.63), cmToPx(19.52), {
+        width: cmToPx(4),
+        height: cmToPx(4)
       });
 
     // Draw text (centered with padding)
