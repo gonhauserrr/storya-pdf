@@ -930,12 +930,17 @@ stream.on('finish', () => {
 });
 
 
+const fetchNoteImage = async (url) => {
+  const response = await fetch(`${url}?nocache=${Date.now()}`);
+  if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+  return await response.buffer();
+};
 app.post('/generate-note', async (req, res) => {
   const { background, signature, text } = req.body;
 
   try {
     const doc = new PDFDocument({ size: [1414, 2000], margin: 0 });
-    const filename = `output-note-${Date.now()}.pdf`;
+    const filename = `output-note-${Date.now()}-${Math.floor(Math.random() * 1000)}.pdf`;
     const stream = fs.createWriteStream(filename);
     doc.pipe(stream);
 
@@ -943,8 +948,16 @@ app.post('/generate-note', async (req, res) => {
     doc.registerFont('Quicksand', 'fonts/Quicksand-Regular.ttf');
 
     // Draw background
-    const bg = await fetchImage(background);
+    const bg = await fetchNoteImage(background);
     doc.image(bg, 0, 0, { width: 1414, height: 2000 });
+
+       // Draw signature image
+      const sigBuffer = await fetchNoteImage(signature);
+      console.log('Drawing signature image');
+      doc.image(sigBuffer, cmToPx(8.31), cmToPx(19.52), {
+        width: cmToPx(8),
+        height: cmToPx(8)
+      });
 
     // Draw text (centered with padding)
     doc.font('Quicksand')
@@ -957,12 +970,7 @@ app.post('/generate-note', async (req, res) => {
         valign: 'center'
       });
 
-    // Draw signature image
-    const sig = await fetchImage(signature);
-    doc.image(sig, cmToPx(8.31), cmToPx(19.52), {
-      width: cmToPx(4),
-      height: cmToPx(4)
-    });
+
 
     doc.end();
 
