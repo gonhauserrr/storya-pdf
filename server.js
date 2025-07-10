@@ -196,8 +196,10 @@ app.post('/generate-3', async (req, res) => {
       size: [1414, 2000],
       margin: 0,
     });
+    
+    const filename = `output-generate-3-${Date.now()}.pdf`;
 
-    const filename = 'output-generate-3.pdf';
+
     const stream = fs.createWriteStream(filename);
     doc.pipe(stream);
 
@@ -267,7 +269,7 @@ app.post('/generate-3', async (req, res) => {
 
       // Draw centered text
       doc.fillColor('black').text(text, boxX + padding, boxY + padding / 2, {
-        width: textWidth,
+        width: boxWidth - padding * 2,
         align: 'center'
       });
 
@@ -277,8 +279,11 @@ app.post('/generate-3', async (req, res) => {
     doc.end();
 
     stream.on('finish', () => {
-      res.download(filename, () => fs.unlinkSync(filename));
-    });
+  setTimeout(() => {
+    res.download(filename, () => fs.unlinkSync(filename));
+  }, 200); // 200ms delay to ensure file is flushed
+});
+
 
   } catch (err) {
     console.error(err);
