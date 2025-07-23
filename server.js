@@ -1198,6 +1198,87 @@ app.post('/generate-background-pdf', async (req, res) => {
   }
 });
 
+
+
+
+
+app.post('/generate-dynamic-cover', async (req, res) => {
+  const {
+    backgroundUrl,
+    imaginedBy,
+    imaginedByPosition,
+    characterUrl,
+    characterPosition
+  } = req.body;
+
+  if (
+    !backgroundUrl ||
+    !imaginedBy ||
+    !imaginedByPosition ||
+    typeof imaginedByPosition.x !== 'number' ||
+    typeof imaginedByPosition.y !== 'number'
+  ) {
+    return res.status(400).json({ error: 'Missing or invalid parameters' });
+  }
+
+  try {
+    const fetchImage = async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+      return await response.buffer();
+    };
+
+    const background = await fetchImage(backgroundUrl);
+    const character = characterUrl ? await fetchImage(characterUrl) : null;
+
+    const doc = new PDFDocument({
+      size: [1414, 2000],
+      margin: 0,
+    });
+
+    const outputPath = 'output-cover.pdf';
+    const stream = fs.createWriteStream(outputPath);
+    doc.pipe(stream);
+
+    doc.registerFont('Kollektif', 'fonts/Kollektif-Bold.ttf');
+    doc.font('Kollektif');
+    const fontScale = 2.2;
+
+    doc.image(background, 0, 0, { width: 1414, height: 2000 });
+
+    if (
+      character &&
+      characterPosition &&
+      typeof characterPosition.x === 'number' &&
+      typeof characterPosition.y === 'number' &&
+      typeof characterPosition.width === 'number' &&
+      typeof characterPosition.height === 'number'
+    ) {
+      doc.image(character, cmToPx(characterPosition.x), cmToPx(characterPosition.y), {
+        width: cmToPx(characterPosition.width),
+        height: cmToPx(characterPosition.height),
+      });
+    }
+
+    doc.fontSize(21 * fontScale)
+       .fillColor('#000000')
+       .text(imaginedBy, cmToPx(imaginedByPosition.x), cmToPx(imaginedByPosition.y));
+
+    doc.end();
+
+    stream.on('finish', () => {
+      res.download(outputPath, () => {
+        fs.unlinkSync(outputPath);
+      });
+    });
+
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    res.status(500).json({ error: 'PDF generation failed' });
+  }
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
