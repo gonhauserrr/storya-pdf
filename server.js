@@ -1203,13 +1203,15 @@ app.post('/generate-background-pdf', async (req, res) => {
 
 
 app.post('/generate-dynamic-cover', async (req, res) => {
-  const {
-    backgroundUrl,
-    imaginedBy,
-    imaginedByPosition,
-    characterUrl,
-    characterPosition
-  } = req.body;
+    const {
+        backgroundUrl,
+        imaginedBy,
+        imaginedByPosition,
+        characterUrl,
+        characterPosition,
+        fontColor = '#000000',
+        centerText = false
+      } = req.body;
 
   if (
     !backgroundUrl ||
@@ -1260,9 +1262,19 @@ app.post('/generate-dynamic-cover', async (req, res) => {
       });
     }
 
+    const textOptions = centerText
+      ? {
+          align: 'center',
+          width: 1414
+        }
+      : {};
+
+    const textX = centerText ? 0 : cmToPx(imaginedByPosition.x);
+    const textY = cmToPx(imaginedByPosition.y);
+
     doc.fontSize(21 * fontScale)
-       .fillColor('#000000')
-       .text(imaginedBy, cmToPx(imaginedByPosition.x), cmToPx(imaginedByPosition.y));
+       .fillColor(fontColor)
+       .text(imaginedBy, textX, textY, textOptions);
 
     doc.end();
 
