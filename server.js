@@ -1,16 +1,107 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from 'express';
 import PDFDocument from 'pdfkit';
 import fetch from 'node-fetch';
 import fs from 'fs';
+
+import bodyParser from "body-parser";
+
+
+import path from "path";
+
+import OpenAI from "openai";
+
 import { PDFDocument as PDFMerger } from 'pdf-lib';
+
+
 
 
 const app = express();
 app.use(express.json());
+app.use(bodyParser.json());
+
 
 
 const cmToPx = (cm) => cm * 67.3;
 const fontScale = 2.2; // tweak visually until it matches Canva
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const GENERATED_DIR = path.join(process.cwd(), "generated");
+if (!fs.existsSync(GENERATED_DIR)) fs.mkdirSync(GENERATED_DIR);
+
+async function fetchImageAsBase64(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch image: ${res.statusText}`);
+  const buffer = await res.arrayBuffer();
+  return Buffer.from(buffer).toString("base64");
+}
+
+async function generateImage({ jobId, prompt, reference_image_url }) {
+  let base64Image = null;
+  if (reference_image_url) {
+    base64Image = await fetchImageAsBase64(reference_image_url);
+  }
+
+  const promptJSON = `${prompt}`;
+
+  const response = await openai.responses.create({
+    model: "gpt-4.1",
+    input: [
+      {
+        role: "user",
+        content: [
+          { type: "input_text", text: promptJSON },
+          ...(base64Image
+            ? [{ type: "input_image", image_url: `data:image/jpg;base64,${base64Image}` }]
+            : []),
+        ],
+      },
+    ],
+    tools: [{ type: "image_generation", size: "1024x1536" }],
+  });
+
+  const imageData = response.output.find((o) => o.type === "image_generation_call");
+  if (!imageData) throw new Error("No image generated");
+
+  const filePath = path.join(GENERATED_DIR, `${jobId}.png`);
+  fs.writeFileSync(filePath, Buffer.from(imageData.result, "base64"));
+  return filePath;
+}
+
+app.post("/generate-gpt-image", async (req, res) => {
+  try {
+    const { jobId, prompt, reference_image_url } = req.body;
+    if (!jobId || !prompt) return res.status(400).json({ error: "jobId and prompt required" });
+
+    // Immediately respond so client doesn't timeout
+    res.json({ status: "started", jobId });
+
+    // Generate image asynchronously
+    generateImage({ jobId, prompt, reference_image_url }).catch(console.error);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// New: Check job status endpoint
+app.get("/check-job/:jobId", (req, res) => {
+  const jobId = req.params.jobId;
+  const filePath = path.join(GENERATED_DIR, `${jobId}.png`);
+
+  if (fs.existsSync(filePath)) {
+    const url = `${req.protocol}://${req.get("host")}/generated/${jobId}.png`;
+    return res.json({ status: "done", image_url: url });
+  } else {
+    return res.json({ status: "pending" });
+  }
+});
+
+app.use("/generated", express.static(GENERATED_DIR));
 
 app.post('/generate-1', async (req, res) => {
   const {
@@ -44,14 +135,9 @@ app.post('/generate-1', async (req, res) => {
     const stream = fs.createWriteStream(filename);
     doc.pipe(stream);
 
-    // Optional: Load custom font
-    // doc.registerFont('CustomFont', 'fonts/YourFont.ttf');
-    // doc.font('CustomFont');
-
-    // Draw background
     doc.image(background, 0, 0, { width: 1414, height: 2000 });
 
-    // Draw character
+
     doc.image(character, cmToPx(-2.56), cmToPx(2.59), {
       width: cmToPx(17.19),
       height: cmToPx(22.92),
@@ -59,7 +145,7 @@ app.post('/generate-1', async (req, res) => {
 
     doc.registerFont('Lucky', 'fonts/Luckybones-Bold.ttf');
 
-    // Define text positions + sizes
+
     const textLayout = [
       { x: 12.18, y: 11.9, size: 36.9 },
       { x: 12.18, y: 13.21, size: 59.4 },
@@ -596,7 +682,7 @@ app.post('/generate-6', async (req, res) => {
 
     // Draw text
     doc.font('Quicksand')
-       .fontSize(21 * 2.2) // scaling factor to match Canva look
+       .fontSize(21 * fontScale) // scaling factor to match Canva look
        .fillColor('white')
        .text(text, 0, cmToPx(25.56), {
          width: 1414,
@@ -849,7 +935,7 @@ app.post('/generate-book', async (req, res) => {
 
   try {
     const doc = new PDFDocument({ size: [1414, 2000], margin: 0 });
-    const filename = `output-book-${Date.now()}.pdf`;
+    const filename = 'output-book.pdf';
     const stream = fs.createWriteStream(filename);
     doc.pipe(stream);
 
@@ -895,12 +981,12 @@ app.post('/generate-book', async (req, res) => {
       // Type 3: Background + text only
       if (page.type === 3) {
         
-        doc.font('Quicksand-Bold')
+        doc.font('Quicksand')
           .fontSize(20 * fontScale)
           .fillColor('#000000')
-          .text(page.text, cmToPx(2.43), cmToPx(5.39), {
+          .text(page.text, cmToPx(2.43), cmToPx(9.39), {
             width: cmToPx(16.13),
-            height: cmToPx(11.73),
+            height: cmToPx(7.73),
             align: 'center',
             valign: 'center'
           });
@@ -970,7 +1056,7 @@ app.post('/generate-note', async (req, res) => {
       .fillColor('#000000')
       .text(text, cmToPx(2), cmToPx(9.63), {
         width: 1414 - cmToPx(4), // horizontal padding
-        height: cmToPx(10), // enough height to allow vertical centering
+        height: cmToPx(3), // enough height to allow vertical centering
         align: 'center',
         valign: 'center'
       });
@@ -1001,6 +1087,43 @@ app.post('/generate-note', async (req, res) => {
   }
 });
 
+
+app.post('/generate-background-pdf', async (req, res) => {
+  const { background } = req.body;
+
+  if (!background) {
+    return res.status(400).json({ error: 'Missing background URL' });
+  }
+
+  try {
+    const doc = new PDFDocument({ size: [1414, 2000], margin: 0 });
+    const filename = 'background-output.pdf';
+    const stream = fs.createWriteStream(filename);
+    doc.pipe(stream);
+
+    const bgResponse = await fetch(background.startsWith('http') ? background : `https:${background}`);
+    const bgBuffer = await bgResponse.buffer();
+
+    doc.image(bgBuffer, 0, 0, { width: 1414, height: 2000 });
+    doc.end();
+
+    stream.on('finish', () => {
+      res.download(filename, () => {
+        setTimeout(() => {
+          try {
+            fs.unlinkSync(filename);
+          } catch (err) {
+            console.error('Error deleting file:', err.message);
+          }
+        }, 2000);
+      });
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
 app.post('/merge-pdfs', async (req, res) => {
   const { urls } = req.body;
 
@@ -1024,6 +1147,8 @@ app.post('/merge-pdfs', async (req, res) => {
     res.status(500).send('Error merging PDFs');
   }
 });
+
+
 
 app.post('/generate-21', async (req, res) => {
   const {
@@ -1135,7 +1260,7 @@ app.post('/generate-22', async (req, res) => {
     doc.image(background, 0, 0, { width: 1414, height: 2000 });
 
     // Draw character
-    doc.image(character, cmToPx(-3), cmToPx(9), {
+    doc.image(character, cmToPx(-2), cmToPx(9), {
       width: cmToPx(15.75),
       height: cmToPx(21.01),
     });
@@ -1197,8 +1322,6 @@ app.post('/generate-background-pdf', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate PDF' });
   }
 });
-
-
 
 
 
@@ -1291,7 +1414,9 @@ app.post('/generate-dynamic-cover', async (req, res) => {
 });
 
 
-const PORT = process.env.PORT || 3000;
+
+
+const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
