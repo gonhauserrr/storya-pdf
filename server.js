@@ -940,6 +940,7 @@ app.post('/generate-book', async (req, res) => {
     doc.pipe(stream);
 
     // Load font once
+    doc.registerFont('Quicksand', 'fonts/Quicksand-Bold.ttf');
     doc.registerFont('Quicksand-Bold', 'fonts/Quicksand-Bold.ttf');
 
         for (let i = 0; i < pages.length; i++) {
