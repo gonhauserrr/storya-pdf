@@ -938,95 +938,91 @@ async function fetchImage(url) {
 app.post('/generate-book', async (req, res) => {
   const { pages } = req.body;
 
-
   pages.sort((a, b) => a.pageNumber - b.pageNumber);
 
-
   try {
+    const GENERATED_DIR = path.join(process.cwd(), "generated");
+    if (!fs.existsSync(GENERATED_DIR)) {
+      fs.mkdirSync(GENERATED_DIR);
+    }
+
+    // Unique filename with timestamp
+    const timestamp = Date.now();
+    const filename = `output-book-${timestamp}.pdf`;
+    const pdfPath = path.join(GENERATED_DIR, filename);
+
     const doc = new PDFDocument({ size: [1414, 2000], margin: 0 });
-    const filename = 'output-book.pdf';
-    const stream = fs.createWriteStream(filename);
+    const stream = fs.createWriteStream(pdfPath);
     doc.pipe(stream);
 
-    // Load font once
-    doc.registerFont('Quicksand', 'fonts/Quicksand-Bold.ttf');
-    doc.registerFont('Quicksand-Bold', 'fonts/Quicksand-Bold.ttf');
+    // Fonts
+    doc.registerFont("Quicksand", "fonts/Quicksand-Bold.ttf");
+    doc.registerFont("Quicksand-Bold", "fonts/Quicksand-Bold.ttf");
 
-        for (let i = 0; i < pages.length; i++) {
+    for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
-
-      // Only add a new page after the first
       if (i !== 0) doc.addPage();
 
-      // Draw background image
       const bg = await fetchImage(page.background);
       doc.image(bg, 0, 0, { width: 1414, height: 2000 });
 
-      // Type 1: Background + overlay shapes + text
       if (page.type === 1) {
         const overlay = await fetchImage(page.overlay);
         doc.image(overlay, 0, 0, { width: 1414 });
 
-        doc.font('Quicksand-Bold')
+        doc.font("Quicksand-Bold")
           .fontSize(20 * fontScale)
-          .fillColor('#000000');
+          .fillColor("#000000");
 
         const textOptions = {
           width: cmToPx(18.57),
-          align: 'center',
-          valign: 'center',
-          height: page.position === 'top' ? cmToPx(5.73) : cmToPx(6.71),
+          align: "center",
+          valign: "center",
+          height: page.position === "top" ? cmToPx(5.73) : cmToPx(6.71),
         };
 
-        const textY = page.position === 'top' ? cmToPx(1.29) : cmToPx(22.33);
+        const textY = page.position === "top" ? cmToPx(1.29) : cmToPx(22.33);
         doc.text(page.text, cmToPx(1.21), textY, textOptions);
       }
 
-      // Type 2: Background + character image
       if (page.type === 2) {
         const character = await fetchImage(page.character);
         doc.image(character, 0, 0, { width: 1414, height: 2000 });
       }
 
-      // Type 3: Background + text only
       if (page.type === 3) {
-        
-        doc.font('Quicksand')
+        doc.font("Quicksand")
           .fontSize(20 * fontScale)
-          .fillColor('#000000')
+          .fillColor("#000000")
           .text(page.text, cmToPx(2.43), cmToPx(9.39), {
             width: cmToPx(16.13),
             height: cmToPx(7.73),
-            align: 'center',
-            valign: 'center'
+            align: "center",
+            valign: "center",
           });
       }
     }
 
-
     doc.end();
 
-stream.on('finish', () => {
-  res.download(filename, (err) => {
-    if (err) {
-      console.error('Download error:', err);
-    } else {
-      // Delay deletion to avoid EBUSY on Windows
-      setTimeout(() => {
-        try {
-          fs.unlinkSync(filename);
-        } catch (e) {
-          console.error('Unlink error:', e.message);
+    stream.on("finish", () => {
+      res.download(pdfPath, filename, (err) => {
+        if (err) {
+          console.error("Download error:", err);
+        } else {
+          // Delete after sending
+          setTimeout(() => {
+            if (fs.existsSync(pdfPath)) {
+              fs.unlinkSync(pdfPath);
+            }
+          }, 2000);
         }
-      }, 2000); // 2 second delay
-    }
-  });
-});
-
+      });
+    });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to generate book PDF' });
+    res.status(500).json({ error: "Failed to generate book PDF" });
   }
 });
 
