@@ -14,12 +14,23 @@ const GENERATED_DIR = path.join(process.cwd(), "generated");
 if (!fs.existsSync(GENERATED_DIR)) fs.mkdirSync(GENERATED_DIR);
 
 async function fetchImageAsBase64(url) {
+  console.log("🔗 Fetching reference image:", url);
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch image: ${res.statusText}`);
+  console.log("📌 Response status:", res.status);
+
+  if (!res.ok) {
+    console.error("❌ Failed to fetch image:", res.statusText);
+    throw new Error(`Failed to fetch image: ${res.statusText}`);
+  }
+
   const mimeType = res.headers.get("content-type") || "image/jpeg";
   const buffer = await res.arrayBuffer();
-  return { mimeType, base64: Buffer.from(buffer).toString("base64") };
+  const base64 = Buffer.from(buffer).toString("base64");
+  console.log("✅ Reference image fetched, size:", buffer.byteLength);
+
+  return { mimeType, base64 };
 }
+
 
 async function generateImage({ jobId, prompt, reference_image_url, transparent_background }) {
   console.log("📌 generateImage called with:", { jobId, reference_image_url, transparent_background });
