@@ -1026,7 +1026,6 @@ app.post('/generate-book', async (req, res) => {
   }
 });
 
-
 const fetchNoteImage = async (url) => {
   const response = await fetch(`${url}?nocache=${Date.now()}`);
   if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
