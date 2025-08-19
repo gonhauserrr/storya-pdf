@@ -7,11 +7,12 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 
 import bodyParser from "body-parser";
+import { gptRouter } from './gpt.mjs';
 
 
 import path from "path";
 
-import OpenAI from "openai";
+
 
 import { PDFDocument as PDFMerger } from 'pdf-lib';
 
@@ -27,88 +28,16 @@ app.use(bodyParser.json());
 const cmToPx = (cm) => cm * 67.3;
 const fontScale = 2.2; // tweak visually until it matches Canva
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+
 
 const GENERATED_DIR = path.join(process.cwd(), "generated");
 if (!fs.existsSync(GENERATED_DIR)) fs.mkdirSync(GENERATED_DIR);
 
-async function fetchImageAsBase64(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch image: ${res.statusText}`);
-
-  const mimeType = res.headers.get("content-type") || "image/jpeg"; // detect
-  const buffer = await res.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
-
-  return { mimeType, base64 };
-}
 
 
-async function generateImage({ jobId, prompt, reference_image_url }) {
-  let imageDataObj = null;
-  if (reference_image_url) {
-    imageDataObj = await fetchImageAsBase64(reference_image_url);
-  }
+app.use('/', gptRouter);
 
 
-  const fullPrompt = `${prompt}\n\nUse the provided image as the main reference. Preserve the person's face, hairstyle, skin tone, and clothing style exactly as shown.`;
-
-  // Send prompt + base64 image
-  const response = await openai.responses.create({
-    model: "gpt-4.1",
-    input: [
-      {
-        role: "user",
-        content: [
-          { type: "input_text", text: fullPrompt },
-          { type: "input_image", image_url: `data:${imageDataObj.mimeType};base64,${imageDataObj.base64}` },
-        ],
-      },
-    ],
-    tools: [{ type: "image_generation", size: "1024x1536", input_fidelity: "high" }],
-  });
-
-
-
-
-  const imageData = response.output.find((o) => o.type === "image_generation_call");
-  if (!imageData) throw new Error("No image generated");
-
-  const filePath = path.join(GENERATED_DIR, `${jobId}.png`);
-  fs.writeFileSync(filePath, Buffer.from(imageData.result, "base64"));
-  return filePath;
-}
-
-
-app.post("/generate-gpt-image", async (req, res) => {
-  try {
-    const { jobId, prompt, reference_image_url } = req.body;
-    if (!jobId || !prompt) return res.status(400).json({ error: "jobId and prompt required" });
-
-    // Immediately respond so client doesn't timeout
-    res.json({ status: "started", jobId });
-
-    // Generate image asynchronously
-    generateImage({ jobId, prompt, reference_image_url }).catch(console.error);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// New: Check job status endpoint
-app.get("/check-job/:jobId", (req, res) => {
-  const jobId = req.params.jobId;
-  const filePath = path.join(GENERATED_DIR, `${jobId}.png`);
-
-  if (fs.existsSync(filePath)) {
-    const url = `${req.protocol}://${req.get("host")}/generated/${jobId}.png`;
-    return res.json({ status: "done", image_url: url });
-  } else {
-    return res.json({ status: "pending" });
-  }
-});
 
 app.use("/generated", express.static(GENERATED_DIR));
 
