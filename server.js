@@ -955,6 +955,96 @@ app.post('/generate-book', async (req, res) => {
   }
 });
 
+
+app.post('/create-book', async (req, res) => {
+  const { pages } = req.body;
+
+  pages.sort((a, b) => a.pageNumber - b.pageNumber);
+
+  try {
+    const GENERATED_DIR = path.join(process.cwd(), "generated");
+    if (!fs.existsSync(GENERATED_DIR)) {
+      fs.mkdirSync(GENERATED_DIR);
+    }
+
+    // Unique filename with timestamp
+    const timestamp = Date.now();
+    const filename = `output-book-${timestamp}.pdf`;
+    const pdfPath = path.join(GENERATED_DIR, filename);
+
+    const doc = new PDFDocument({ size: [1414, 2000], margin: 0 });
+    const stream = fs.createWriteStream(pdfPath);
+    doc.pipe(stream);
+
+    // Fonts
+    doc.registerFont("Quicksand", "fonts/Quicksand-Bold.ttf");
+    doc.registerFont("Quicksand-Bold", "fonts/Quicksand-Bold.ttf");
+
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      if (i !== 0) doc.addPage();
+
+      const bg = await fetchImage(page.background);
+      doc.image(bg, 0, 0, { width: 1414, height: 2000 });
+
+      if (page.type === 1) {
+        const overlay = await fetchImage(page.overlay);
+        doc.image(overlay, 0, 0, { width: 1414 });
+
+        doc.font("Quicksand-Bold")
+          .fontSize(20 * fontScale)
+          .fillColor("#000000");
+
+        const textOptions = {
+          width: cmToPx(18.57),
+          align: "center",
+          valign: "center",
+          height: page.position === "top" ? cmToPx(5.73) : cmToPx(6.71),
+        };
+
+        const textY = page.position === "top" ? cmToPx(1.29) : cmToPx(22.33);
+        doc.text(page.text, cmToPx(1.21), textY, textOptions);
+      }
+
+      if (page.type === 2) {
+        const character = await fetchImage(page.character);
+        doc.image(character, 0, 0, { width: 1414, height: 2000 });
+      }
+
+      if (page.type === 3) {
+        doc.font("Quicksand")
+          .fontSize(20 * fontScale)
+          .fillColor("#000000")
+          .text(page.text, cmToPx(2.43), cmToPx(9.39), {
+            width: cmToPx(16.13),
+            height: cmToPx(7.73),
+            align: "center",
+            valign: "center",
+          });
+      }
+    }
+
+    doc.end();
+
+    stream.on("finish", () => {
+      const fileUrl = `${req.protocol}://${req.get("host")}/generated/${filename}`;
+      res.json({ url: fileUrl });
+
+      // Auto-delete after 10 minutes
+      setTimeout(() => {
+        if (fs.existsSync(pdfPath)) {
+          fs.unlinkSync(pdfPath);
+          console.log(`🗑️ Deleted ${filename} after 10 minutes`);
+        }
+      }, 10 * 60 * 1000); // 10 minutes
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to generate book PDF" });
+  }
+});
+
 const fetchNoteImage = async (url) => {
   const response = await fetch(`${url}?nocache=${Date.now()}`);
   if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
