@@ -50,7 +50,7 @@ async function generateImage({ jobId, prompt, reference_image_url, transparent_b
     console.log("🎨 Transparent background enabled");
   }
 
-  const fullPrompt = `Illustrate a 3D animated pixar style scene/avatar for a childbook with the following info. ${prompt}`;
+  const fullPrompt = `Illustrate A 3D Pixar-style animation, highly detailed, cinematic lighting, soft textures, expressive cartoon characters, vibrant colors with the following info. ${prompt} in the same consistent 3D Pixar-style animation.  Do not generate realistic photography, do not use 2D illustration, do not make anime style, do not use flat design..`;
   console.log("📝 Sending prompt to OpenAI, length:", fullPrompt.length);
 
   let response;
