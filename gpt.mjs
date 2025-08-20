@@ -50,7 +50,7 @@ async function generateImage({ jobId, prompt, reference_image_url, transparent_b
     console.log("🎨 Transparent background enabled");
   }
 
-  const fullPrompt = `${prompt}\n\nUse the provided image as the main reference. Preserve the person's face, hairstyle, skin tone, and clothing style exactly as shown.`;
+  const fullPrompt = `Illustrate a 3D animated pixar style scene/avatar for a childbook with the following info. ${prompt}`;
   console.log("📝 Sending prompt to OpenAI, length:", fullPrompt.length);
 
   let response;
