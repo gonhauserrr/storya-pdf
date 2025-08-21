@@ -44,13 +44,16 @@ async function generateImage({ jobId, prompt, reference_image_url, transparent_b
     console.log("ℹ️ No reference image provided");
   }
 
-  const toolConfig = { type: "image_generation", size: "1024x1536" };
+  const toolConfig = { type: "image_generation", size: "1024x1536", output_format: "jpeg" };
   if (transparent_background) {
     toolConfig.background = "transparent";
-    console.log("🎨 Transparent background enabled");
+    toolConfig.output_format = "png";
+
   }
 
-  const fullPrompt = `Illustrate A 3D Pixar-style animation, highly detailed, cinematic lighting, soft textures, expressive cartoon characters, vibrant colors with the following info. ${prompt} in the same consistent 3D Pixar-style animation.  Do not generate realistic photography, do not use 2D illustration, do not make anime style, do not use flat design..`;
+  const fullPrompt = `Illustrate A 3D Pixar-style animation, highly detailed, cinematic lighting, soft textures, expressive cartoon characters, vibrant colors with the following info. ${prompt} in the same consistent 3D Pixar-style animation.  Do not generate realistic photography, do not use 2D illustration, do not make anime style, do not use flat design.`;
+
+  
   console.log("📝 Sending prompt to OpenAI, length:", fullPrompt.length);
 
   let response;
@@ -62,7 +65,7 @@ async function generateImage({ jobId, prompt, reference_image_url, transparent_b
           role: "user",
           content: [
             { type: "input_text", text: fullPrompt },
-            ...(imageDataObj ? [{ type: "input_image", image_url: `data:${imageDataObj.mimeType};base64,${imageDataObj.base64}` }] : [])
+            ...(imageDataObj ? [{ type: "input_image", output_format: "jpeg",image_url: `data:${imageDataObj.mimeType};base64,${imageDataObj.base64}` }] : [])
           ]
         }
       ],
