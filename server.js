@@ -1172,37 +1172,33 @@ app.post('/merge-pdfs', async (req, res) => {
   }
 });
 
-app.post("/merge-pdfs-2", async (req, res) => {
+app.post('/merge-pdfs-2', async (req, res) => {
   const { urls } = req.body;
 
   try {
-    // merged PDF
-    const mergedPdf = await PDFDocument.create();
+    const mergedPdf = await PDFMerger.create();
 
     for (const url of urls) {
       const response = await fetch(url);
       const pdfBytes = await response.arrayBuffer();
-
-      const pdf = await PDFDocument.load(pdfBytes);
+      const pdf = await PDFMerger.load(pdfBytes);
       const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
       copiedPages.forEach((page) => mergedPdf.addPage(page));
     }
 
     const finalPdfBytes = await mergedPdf.save();
 
-    // save to file
+    // 🔹 Save to file
     const timestamp = Date.now();
     const filename = `merged-${timestamp}.pdf`;
     const pdfPath = path.join(GENERATED_DIR, filename);
+    fs.writeFileSync(pdfPath, Buffer.from(finalPdfBytes));
 
-    fs.writeFileSync(pdfPath, finalPdfBytes);
-
-    // build URL
+    // 🔹 Return URL instead of file
     const fileUrl = `${req.protocol}://${req.get("host")}/generated/${filename}`;
-
     res.json({ url: fileUrl });
 
-    // auto-delete after 10 minutes
+    // 🔹 Auto-delete after 10 minutes
     setTimeout(() => {
       if (fs.existsSync(pdfPath)) {
         fs.unlinkSync(pdfPath);
@@ -1211,11 +1207,10 @@ app.post("/merge-pdfs-2", async (req, res) => {
     }, 10 * 60 * 1000);
 
   } catch (error) {
-    console.error("Merge error:", error);
-    res.status(500).json({ error: "Error merging PDFs" });
+    console.error('Merge error:', error);
+    res.status(500).send('Error merging PDFs');
   }
 });
-
 app.post('/generate-21', async (req, res) => {
   const {
     backgroundUrl,
