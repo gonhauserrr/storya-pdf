@@ -65,7 +65,7 @@ async function generateImage({ jobId, prompt, reference_image_url, transparent_b
           role: "user",
           content: [
             { type: "input_text", text: fullPrompt },
-            ...(imageDataObj ? [{ type: "input_image", output_format: "jpeg",image_url: `data:${imageDataObj.mimeType};base64,${imageDataObj.base64}` }] : [])
+            ...(imageDataObj ? [{ type: "input_image",image_url: `data:${imageDataObj.mimeType};base64,${imageDataObj.base64}` }] : [])
           ]
         }
       ],
