@@ -69,6 +69,7 @@ async function generateImage({ jobId, prompt, reference_image_url, transparent_b
           ]
         }
       ],
+      tool_choice: "required",
       tools: [toolConfig],
     });
     console.log("✅ OpenAI API call successful");
