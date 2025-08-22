@@ -76,8 +76,8 @@ app.post('/generate-1', async (req, res) => {
     doc.image(background, 0, 0, { width: 1414, height: 2000 });
 
 
-    doc.image(character, cmToPx(-2.56), cmToPx(2.59), {
-      width: cmToPx(17.19),
+    doc.image(character, cmToPx(-0.995), cmToPx(2.59), {
+      width: cmToPx(15.12),
       height: cmToPx(22.92),
     });
 
@@ -156,8 +156,8 @@ app.post('/generate-2', async (req, res) => {
     doc.image(background, 0, 0, { width: 1414, height: 2000 });
 
     // Draw character
-    doc.image(character, cmToPx(5.54), cmToPx(-0.4), {
-      width: cmToPx(15.62),
+    doc.image(character, cmToPx(6.425), cmToPx(-0.4), {
+      width: cmToPx(13.74),
       height: cmToPx(23.43),
     });
 
@@ -920,17 +920,29 @@ app.post('/generate-book', async (req, res) => {
       }
 
       if (page.type === 3) {
-        doc.font("Quicksand")
-          .fontSize(20 * fontScale)
-          .fillColor("#000000")
-          .text(page.text, cmToPx(2.43), cmToPx(9.39), {
-            width: cmToPx(16.13),
-            height: cmToPx(7.73),
-            align: "center",
-            valign: "center",
-          });
+        const boxX = cmToPx(2.43);          // same left margin you already use
+        const boxWidth = cmToPx(16.13);     // same width you already use
+        const boxY = 50;                    // top gap
+        const boxHeight = 2000 - 100;       // full page height minus top+bottom gap
+        const fontSize = 20 * fontScale;
+
+        const text = page.text;
+
+        doc.font("Quicksand").fontSize(fontSize).fillColor("#000000");
+
+        // Measure rendered text height
+        const textHeight = doc.heightOfString(text, { width: boxWidth, align: "center" });
+
+        // Calculate Y so it's vertically centered inside the usable area
+        const centeredY = boxY + (boxHeight - textHeight) / 2;
+
+        doc.text(text, boxX, centeredY, {
+          width: boxWidth,
+          align: "center",
+        });
       }
     }
+    
 
     doc.end();
 
@@ -1012,15 +1024,26 @@ app.post('/create-book', async (req, res) => {
       }
 
       if (page.type === 3) {
-        doc.font("Quicksand")
-          .fontSize(20 * fontScale)
-          .fillColor("#000000")
-          .text(page.text, cmToPx(2.43), cmToPx(9.39), {
-            width: cmToPx(16.13),
-            height: cmToPx(7.73),
-            align: "center",
-            valign: "center",
-          });
+        const boxX = cmToPx(2.43);          // same left margin you already use
+        const boxWidth = cmToPx(16.13);     // same width you already use
+        const boxY = 50;                    // top gap
+        const boxHeight = 2000 - 100;       // full page height minus top+bottom gap
+        const fontSize = 20 * fontScale;
+
+        const text = page.text;
+
+        doc.font("Quicksand").fontSize(fontSize).fillColor("#000000");
+
+        // Measure rendered text height
+        const textHeight = doc.heightOfString(text, { width: boxWidth, align: "center" });
+
+        // Calculate Y so it's vertically centered inside the usable area
+        const centeredY = boxY + (boxHeight - textHeight) / 2;
+
+        doc.text(text, boxX, centeredY, {
+          width: boxWidth,
+          align: "center",
+        });
       }
     }
 
@@ -1252,8 +1275,8 @@ app.post('/generate-21', async (req, res) => {
     doc.image(background, 0, 0, { width: 1414, height: 2000 });
 
     // Draw character
-    doc.image(character, cmToPx(-2), cmToPx(2.51), {
-      width: cmToPx(13.7),
+    doc.image(character, cmToPx(-0.975), cmToPx(2.51), {
+      width: cmToPx(12.05),
       height: cmToPx(18.27),
     });
 
@@ -1321,8 +1344,8 @@ app.post('/generate-22', async (req, res) => {
     doc.image(background, 0, 0, { width: 1414, height: 2000 });
 
     // Draw character
-    doc.image(character, cmToPx(-2), cmToPx(9), {
-      width: cmToPx(15.75),
+    doc.image(character, cmToPx(-0.565), cmToPx(9), {
+      width: cmToPx(13.86),
       height: cmToPx(21.01),
     });
 
