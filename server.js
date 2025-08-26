@@ -1275,7 +1275,7 @@ app.post('/generate-21', async (req, res) => {
     doc.image(background, 0, 0, { width: 1414, height: 2000 });
 
     // Draw character
-    doc.image(character, cmToPx(-0.975), cmToPx(2.51), {
+    doc.image(character, cmToPx(-1.0975), cmToPx(2.51), {
       width: cmToPx(12.05),
       height: cmToPx(18.27),
     });
