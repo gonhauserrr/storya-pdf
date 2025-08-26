@@ -547,7 +547,7 @@ app.post('/generate-7', async (req, res) => {
     // Draw character at bottom aligned
     const characterHeightPx = cmToPx(17);
     const yBottomAlign = 2000 - characterHeightPx;
-    doc.image(character, cmToPx(3.74), yBottomAlign, {
+    doc.image(character, cmToPx(4.12), yBottomAlign, {
       height: characterHeightPx
     });
 
