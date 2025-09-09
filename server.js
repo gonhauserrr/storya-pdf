@@ -507,12 +507,13 @@ app.post('/generate-7', async (req, res) => {
     backgroundUrl,
     characterUrl,
     text1_line1,
-    text1_line2
+    text1_line2,
+    text1_line3
   } = req.body;
 
   console.log('Request body:', req.body);
 
-  if (!backgroundUrl || !characterUrl || !text1_line1 || !text1_line2) {
+  if (!backgroundUrl || !characterUrl || !text1_line1 || !text1_line2 || !text1_line3) {
     return res.status(400).json({ error: 'Missing parameters' });
   }
 
@@ -531,7 +532,7 @@ app.post('/generate-7', async (req, res) => {
       margin: 0,
     });
 
-    const filename = 'output-template6.pdf';
+    const filename = 'output-template7.pdf';
     const stream = fs.createWriteStream(filename);
     doc.pipe(stream);
 
@@ -539,6 +540,7 @@ app.post('/generate-7', async (req, res) => {
     const fontScale = 2.2;
 
     // Register font
+    doc.registerFont('Quicksand', 'fonts/Quicksand-Regular.ttf');
     doc.registerFont('Brush', 'fonts/Brush.otf');
 
     // Draw background
@@ -558,18 +560,28 @@ app.post('/generate-7', async (req, res) => {
     const lineGap = cmToPx(0.5); // spacing between lines
 
     doc.font('Brush')
-       .fontSize(fontSize)
-       .fillColor(textColor)
-       .text(text1_line1, 0, yPosition, {
-         width: 1414,
-         align: 'center'
-       })
-       .text(text1_line2, 0, yPosition + lineGap + fontSize, {
-         width: 1414,
-         align: 'center'
-       });
+      .fontSize(fontSize)
+      .fillColor(textColor)
+      .text(text1_line1, 0, yPosition, {
+        width: 1414,
+        align: 'center'
+      })
+      .text(text1_line2, 0, yPosition + lineGap + fontSize, {
+        width: 1414,
+        align: 'center'
+      });
 
-    doc.end();
+    // Line 3 with Quicksand
+    doc.font('Quicksand')
+      .fontSize(fontSize/3)
+      .fillColor(textColor)
+      .text(text1_line3, 0, yPosition + (lineGap + fontSize) * 2, {
+        width: 1414,
+        align: 'center'
+      });
+
+
+     doc.end();
 
     stream.on('finish', () => {
       res.download(filename, () => {
@@ -582,7 +594,6 @@ app.post('/generate-7', async (req, res) => {
     res.status(500).json({ error: 'PDF generation failed' });
   }
 });
-
 
 app.post('/generate-6', async (req, res) => {
   const {
