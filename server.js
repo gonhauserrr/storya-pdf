@@ -1103,7 +1103,7 @@ app.post('/generate-note', async (req, res) => {
       .fillColor('#000000')
       .text(text, cmToPx(2), cmToPx(9.63), {
         width: 1414 - cmToPx(4), // horizontal padding
-        height: cmToPx(3), // enough height to allow vertical centering
+        height: cmToPx(8), // enough height to allow vertical centering
         align: 'center',
         valign: 'center'
       });
