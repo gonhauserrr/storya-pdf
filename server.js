@@ -11,7 +11,7 @@ import { gptRouter } from './gpt.mjs';
 
 
 import path from "path";
-
+import pdf from "pdf-poppler";
 
 
 import { PDFDocument as PDFMerger } from 'pdf-lib';
@@ -1508,7 +1508,67 @@ app.post('/generate-dynamic-cover', async (req, res) => {
   }
 });
 
+app.post("/pdf-to-images", async (req, res) => {
+  try {
+    const { url } = req.body;
 
+    if (!url) {
+      return res.status(400).json({ error: "Missing url" });
+    }
+
+    // 1️⃣ descargar PDF
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Failed to download PDF");
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+
+    // 2️⃣ guardar PDF temporal
+    const timestamp = Date.now();
+    const pdfPath = path.join(GENERATED_DIR, `input-${timestamp}.pdf`);
+    fs.writeFileSync(pdfPath, buffer);
+
+    // 3️⃣ convertir a imágenes
+    const opts = {
+      format: "png",
+      out_dir: GENERATED_DIR,
+      out_prefix: `page-${timestamp}`,
+      page: null, // todas las páginas
+    };
+
+    await pdf.convert(pdfPath, opts);
+
+    // 4️⃣ listar imágenes generadas
+    const files = fs
+      .readdirSync(GENERATED_DIR)
+      .filter(f => f.startsWith(`page-${timestamp}`))
+      .sort();
+
+    const baseUrl = `${req.protocol}://${req.get("host")}/generated`;
+
+    const images = files.map(f => `${baseUrl}/${f}`);
+
+    // 5️⃣ responder
+    res.json({
+      pages: images.length,
+      images
+    });
+
+    // 6️⃣ cleanup automático (10 min)
+    setTimeout(() => {
+      try {
+        fs.unlinkSync(pdfPath);
+        files.forEach(f => fs.unlinkSync(path.join(GENERATED_DIR, f)));
+        console.log("🗑️ cleaned up pdf + images");
+      } catch {}
+    }, 10 * 60 * 1000);
+
+  } catch (err) {
+    console.error("PDF to image error:", err);
+    res.status(500).json({ error: "PDF conversion failed" });
+  }
+});
 
 
 const PORT = 3000;
