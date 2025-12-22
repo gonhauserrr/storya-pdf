@@ -1560,7 +1560,7 @@ app.post("/pdf-to-images", async (req, res) => {
     // 5️⃣ render páginas
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 2 });
+      const viewport = page.getViewport({ scale: 3.5 });
 
       const canvas = createCanvas(viewport.width, viewport.height);
       const context = canvas.getContext("2d");
