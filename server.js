@@ -16,6 +16,12 @@ import path from "path";
 import { PDFDocument as PDFMerger } from 'pdf-lib';
 
 
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+
+const pdfjs = require("pdfjs-dist/legacy/build/pdf.js");
+pdfjs.GlobalWorkerOptions.workerSrc = null;
+import { createCanvas } from "canvas";
 
 
 const app = express();
@@ -1507,7 +1513,95 @@ app.post('/generate-dynamic-cover', async (req, res) => {
   }
 });
 
+app.post("/pdf-to-images", async (req, res) => {
+  try {
+    const { url } = req.body;
 
+    if (!url) {
+      return res.status(400).json({ error: "Missing url" });
+    }
+
+    // 1️⃣ fetch del PDF (Bubble-friendly)
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/pdf",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PDF: ${response.status}`);
+    }
+
+    // 2️⃣ leer binario
+    const arrayBuffer = await response.arrayBuffer();
+    let buffer = Buffer.from(arrayBuffer);
+
+    // 3️⃣ cortar basura previa (CLAVE para Bubble)
+    const pdfHeaderIndex = buffer.indexOf("%PDF");
+    if (pdfHeaderIndex === -1) {
+      throw new Error("PDF header not found");
+    }
+    buffer = buffer.slice(pdfHeaderIndex);
+
+    const pdfData = new Uint8Array(buffer);
+
+    // 4️⃣ cargar PDF
+    const loadingTask = pdfjs.getDocument({
+      data: pdfData,
+      disableWorker: true,
+    });
+
+    const pdf = await loadingTask.promise;
+
+    const timestamp = Date.now();
+    const images = [];
+
+    // 5️⃣ render páginas
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2 });
+
+      const canvas = createCanvas(viewport.width, viewport.height);
+      const context = canvas.getContext("2d");
+
+      await page.render({
+        canvasContext: context,
+        viewport,
+      }).promise;
+
+      const filename = `page-${timestamp}-${i}.png`;
+      const filePath = path.join(GENERATED_DIR, filename);
+
+      fs.writeFileSync(filePath, canvas.toBuffer("image/png"));
+
+      images.push(
+        `${req.protocol}://${req.get("host")}/generated/${filename}`
+      );
+    }
+
+    // 6️⃣ responder
+    res.json({
+      pages: images.length,
+      images,
+    });
+
+    // 7️⃣ cleanup automático (10 min)
+    setTimeout(() => {
+      try {
+        images.forEach((imgUrl) => {
+          const file = imgUrl.split("/").pop();
+          fs.unlinkSync(path.join(GENERATED_DIR, file));
+        });
+        console.log("🗑️ cleaned up images");
+      } catch {}
+    }, 10 * 60 * 1000);
+
+  } catch (err) {
+    console.error("PDF to image error:", err);
+    res.status(500).json({ error: err.message || "PDF conversion failed" });
+  }
+});
 
 const PORT = 3000;
 app.listen(PORT, () => {
