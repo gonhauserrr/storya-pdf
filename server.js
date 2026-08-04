@@ -1089,68 +1089,160 @@ const fetchNoteImage = async (url) => {
   if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
   return await response.buffer();
 };
+
+
 app.post('/generate-note', async (req, res) => {
   const { background, signature, text } = req.body;
 
   try {
-    const doc = new PDFDocument({ size: [1414, 2000], margin: 0 });
+
+    // =====================================================
+    // NOTE SETTINGS
+    // =====================================================
+
+    // Text position and dimensions
+    const NOTE_Y = cmToPx(9.63);
+    const NOTE_HEIGHT = cmToPx(8);
+
+    // Left and right margins
+    const NOTE_MARGIN_LEFT = cmToPx(2);
+    const NOTE_MARGIN_RIGHT = cmToPx(2);
+
+
+    // =====================================================
+    // SIGNATURE SETTINGS
+    // =====================================================
+
+    const SIGNATURE_X = cmToPx(8.63);
+    const SIGNATURE_Y = cmToPx(19.52);
+    const SIGNATURE_SIZE = cmToPx(4);
+
+
+    // =====================================================
+    // CREATE PDF
+    // =====================================================
+
+    const doc = new PDFDocument({
+      size: [1414, 2000],
+      margin: 0
+    });
+
     const filename = `output-note-${Date.now()}-${Math.floor(Math.random() * 1000)}.pdf`;
+
     const stream = fs.createWriteStream(filename);
+
     doc.pipe(stream);
 
-    // Load the font
-    doc.registerFont('Quicksand', 'fonts/Quicksand-Regular.ttf');
 
-    // Draw background
+    // =====================================================
+    // FONT
+    // =====================================================
+
+    doc.registerFont(
+      'Quicksand',
+      'fonts/Quicksand-Regular.ttf'
+    );
+
+
+    // =====================================================
+    // BACKGROUND
+    // =====================================================
+
     const bg = await fetchNoteImage(background);
-    doc.image(bg, 0, 0, { width: 1414, height: 2000 });
 
-       // Draw signature image
-      const sigBuffer = await fetchNoteImage(signature);
-      console.log('Drawing signature image');
-      doc.image(sigBuffer, cmToPx(8.63), cmToPx(19.52), {
-        width: cmToPx(4),
-        height: cmToPx(4)
-      });
+    doc.image(bg, 0, 0, {
+      width: 1414,
+      height: 2000
+    });
 
-    // Draw text (centered with padding)
-    doc.font('Quicksand')
+
+    // =====================================================
+    // SIGNATURE
+    // =====================================================
+
+    const sigBuffer = await fetchNoteImage(signature);
+
+    console.log('Drawing signature image');
+
+    doc.image(
+      sigBuffer,
+      SIGNATURE_X,
+      SIGNATURE_Y,
+      {
+        width: SIGNATURE_SIZE,
+        height: SIGNATURE_SIZE
+      }
+    );
+
+
+    // =====================================================
+    // TEXT
+    // =====================================================
+
+    const textWidth =
+      1414 - NOTE_MARGIN_LEFT - NOTE_MARGIN_RIGHT;
+
+    doc
+      .font('Quicksand')
       .fontSize(26 * fontScale)
       .fillColor('#000000')
-      .text(text, cmToPx(2), cmToPx(9.63), {
-        width: 1414 - cmToPx(4), // horizontal padding
-        height: cmToPx(8), // enough height to allow vertical centering
-        align: 'center',
-        valign: 'center'
-      });
+      .text(
+        text,
+        NOTE_MARGIN_LEFT,
+        NOTE_Y,
+        {
+          width: textWidth,
+          height: NOTE_HEIGHT,
+          align: 'center',
+          valign: 'center'
+        }
+      );
 
 
+    // =====================================================
+    // FINISH PDF
+    // =====================================================
 
     doc.end();
 
+
     stream.on('finish', () => {
+
       res.download(filename, (err) => {
+
         if (err) {
           console.error('Download error:', err);
         } else {
+
           setTimeout(() => {
+
             try {
               fs.unlinkSync(filename);
             } catch (e) {
-              console.error('Unlink error:', e.message);
+              console.error(
+                'Unlink error:',
+                e.message
+              );
             }
+
           }, 2000);
+
         }
+
       });
+
     });
 
   } catch (err) {
+
     console.error(err);
-    res.status(500).json({ error: 'Failed to generate note PDF' });
+
+    res.status(500).json({
+      error: 'Failed to generate note PDF'
+    });
+
   }
 });
-
-
 app.post('/generate-background-pdf', async (req, res) => {
   const { background } = req.body;
 
