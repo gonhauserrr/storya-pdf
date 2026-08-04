@@ -1184,7 +1184,7 @@ app.post('/generate-note', async (req, res) => {
 
     doc
       .font('Quicksand')
-      .fontSize(26 * fontScale)
+      .fontSize(15 * fontScale)
       .fillColor('#391c6d')
       .text(
         text,
