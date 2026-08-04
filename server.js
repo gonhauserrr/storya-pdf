@@ -1183,19 +1183,6 @@ app.post('/generate-note', async (req, res) => {
       1414 - NOTE_MARGIN_LEFT - NOTE_MARGIN_RIGHT;
 
 
-    doc
-  .save()
-  .lineWidth(3)
-  .strokeColor('#FF0000')
-  .rect(
-    NOTE_MARGIN_LEFT,
-    NOTE_Y,
-    textWidth,
-    NOTE_HEIGHT
-  )
-  .stroke()
-  .restore();
-
 
 
       doc
@@ -1222,8 +1209,8 @@ app.post('/generate-note', async (req, res) => {
 
       doc
         .font('Quicksand')
-        .fontSize(26 * fontScale)
-        .fillColor('#000000')
+        .fontSize(15 * fontScale)
+        .fillColor('#391c6d')
         .text(
           text,
           NOTE_MARGIN_LEFT,
