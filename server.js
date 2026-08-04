@@ -1101,8 +1101,8 @@ app.post('/generate-note', async (req, res) => {
     // =====================================================
 
     // Text position and dimensions
-    const NOTE_Y = cmToPx(9.63);
-    const NOTE_HEIGHT = cmToPx(8);
+    const NOTE_Y = cmToPx(8.52);
+    const NOTE_HEIGHT = cmToPx(9.23);
 
     // Left and right margins
     const NOTE_MARGIN_LEFT = cmToPx(2);
@@ -1113,9 +1113,9 @@ app.post('/generate-note', async (req, res) => {
     // SIGNATURE SETTINGS
     // =====================================================
 
-    const SIGNATURE_X = cmToPx(8.63);
-    const SIGNATURE_Y = cmToPx(19.52);
-    const SIGNATURE_SIZE = cmToPx(4);
+    const SIGNATURE_X = cmToPx(9.02);
+    const SIGNATURE_Y = cmToPx(20.19);
+    const SIGNATURE_SIZE = cmToPx(2.97);
 
 
     // =====================================================
@@ -1185,7 +1185,7 @@ app.post('/generate-note', async (req, res) => {
     doc
       .font('Quicksand')
       .fontSize(26 * fontScale)
-      .fillColor('#000000')
+      .fillColor('#391c6d')
       .text(
         text,
         NOTE_MARGIN_LEFT,
