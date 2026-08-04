@@ -1197,23 +1197,42 @@ app.post('/generate-note', async (req, res) => {
   .restore();
 
 
-  
-    doc
-      .font('Quicksand')
-      .fontSize(15 * fontScale)
-      .fillColor('#391c6d')
-      .text(
-        text,
-        NOTE_MARGIN_LEFT,
-        NOTE_Y,
-        {
-          width: textWidth,
-          height: NOTE_HEIGHT,
-          align: 'center',
-          valign: 'center'
-        }
-      );
 
+      doc
+        .font('Quicksand')
+        .fontSize(26 * fontScale);
+
+      const textHeight = doc.heightOfString(text, {
+        width: textWidth,
+        align: 'center'
+      });
+
+
+      // -----------------------------------------------------
+      // Calculate vertically centered Y
+      // -----------------------------------------------------
+
+      const textY =
+        NOTE_Y + (NOTE_HEIGHT - textHeight) / 2;
+
+
+      // -----------------------------------------------------
+      // Draw text
+      // -----------------------------------------------------
+
+      doc
+        .font('Quicksand')
+        .fontSize(26 * fontScale)
+        .fillColor('#000000')
+        .text(
+          text,
+          NOTE_MARGIN_LEFT,
+          textY,
+          {
+            width: textWidth,
+            align: 'center'
+          }
+        );
 
     // =====================================================
     // FINISH PDF
