@@ -1182,6 +1182,22 @@ app.post('/generate-note', async (req, res) => {
     const textWidth =
       1414 - NOTE_MARGIN_LEFT - NOTE_MARGIN_RIGHT;
 
+
+    doc
+  .save()
+  .lineWidth(3)
+  .strokeColor('#FF0000')
+  .rect(
+    NOTE_MARGIN_LEFT,
+    NOTE_Y,
+    textWidth,
+    NOTE_HEIGHT
+  )
+  .stroke()
+  .restore();
+
+
+  
     doc
       .font('Quicksand')
       .fontSize(15 * fontScale)
