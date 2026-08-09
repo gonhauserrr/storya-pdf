@@ -1183,8 +1183,6 @@ app.post('/generate-note', async (req, res) => {
       1414 - NOTE_MARGIN_LEFT - NOTE_MARGIN_RIGHT;
 
 
-
-
       doc
         .font('Quicksand')
         .fontSize(26 * fontScale);
@@ -1624,6 +1622,137 @@ app.post('/generate-dynamic-cover', async (req, res) => {
   } catch (err) {
     console.error('PDF generation failed:', err);
     res.status(500).json({ error: 'PDF generation failed' });
+  }
+});
+
+app.post('/insert-page', async (req, res) => {
+  try {
+    const { pdf_url, image_url } = req.body;
+
+    if (!pdf_url || !image_url) {
+      return res.status(400).json({
+        error: 'Missing pdf_url or image_url'
+      });
+    }
+
+    console.log('📥 Downloading PDF...');
+    const pdfResponse = await fetch(pdf_url);
+
+    if (!pdfResponse.ok) {
+      throw new Error(
+        `Failed to download PDF: ${pdfResponse.status}`
+      );
+    }
+
+    const pdfBuffer = await pdfResponse.buffer();
+
+    console.log('📥 Downloading image...');
+    const imageResponse = await fetch(image_url);
+
+    if (!imageResponse.ok) {
+      throw new Error(
+        `Failed to download image: ${imageResponse.status}`
+      );
+    }
+
+    const imageBuffer = await imageResponse.buffer();
+
+    console.log('📄 Loading PDF...');
+
+    const pdfDoc = await PDFMerger.load(pdfBuffer);
+
+    const pageCount = pdfDoc.getPageCount();
+
+    if (pageCount < 2) {
+      throw new Error(
+        'PDF must contain at least 2 pages'
+      );
+    }
+
+    // Use the first page dimensions
+    const firstPage = pdfDoc.getPage(0);
+    const { width, height } = firstPage.getSize();
+
+    console.log(
+      `📐 Page size: ${width} x ${height}`
+    );
+
+    // Insert page AFTER page 1 and BEFORE page 2
+    const newPage = pdfDoc.insertPage(
+      1,
+      [width, height]
+    );
+
+    // Embed PNG
+    const image = await pdfDoc.embedPng(imageBuffer);
+
+    // Cover the entire page while preserving aspect ratio
+    const scale = Math.max(
+      width / image.width,
+      height / image.height
+    );
+
+    const imageWidth = image.width * scale;
+    const imageHeight = image.height * scale;
+
+    const x = (width - imageWidth) / 2;
+    const y = (height - imageHeight) / 2;
+
+    newPage.drawImage(image, {
+      x,
+      y,
+      width: imageWidth,
+      height: imageHeight
+    });
+
+    console.log('💾 Saving PDF...');
+
+    const outputPdf = await pdfDoc.save();
+
+    const filename =
+      `inserted-page-${Date.now()}.pdf`;
+
+    const outputPath =
+      path.join(GENERATED_DIR, filename);
+
+    fs.writeFileSync(
+      outputPath,
+      outputPdf
+    );
+
+    // Build public URL
+    const baseUrl =
+      `${req.protocol}://${req.get('host')}`;
+
+    const pdfUrl =
+      `${baseUrl}/generated/${filename}`;
+
+    console.log(
+      `✅ PDF created: ${pdfUrl}`
+    );
+
+    console.log(
+      `📖 Pages: ${pageCount} → ${pageCount + 1}`
+    );
+
+    res.json({
+      success: true,
+      url: pdfUrl,
+      filename,
+      pages: pageCount + 1
+    });
+
+  } catch (error) {
+
+    console.error(
+      '❌ /insert-page error:',
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
